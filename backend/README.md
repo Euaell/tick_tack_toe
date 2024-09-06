@@ -1,4 +1,4 @@
-Sure! Below is a comprehensive guide for setting up and deploying a NestJS backend for a Tic-Tac-Toe game with chat and real-time file sharing features. This guide includes development setup, code implementation, and deployment using Docker on Google Cloud Platform (GCP).
+Sure! Below is a comprehensive guide for setting up and deploying a NestJS backend for a Tic-Tac-Toe game with chat and real-time file sharing features. This guide includes development setup, code implementation.
 
 ### Comprehensive Guide for Tic-Tac-Toe Backend
 
@@ -6,7 +6,6 @@ Sure! Below is a comprehensive guide for setting up and deploying a NestJS backe
 - Node.js and npm/yarn installed
 - NestJS CLI installed globally (`npm install -g @nestjs/cli`)
 - Docker installed
-- Google Cloud SDK installed and configured (`gcloud auth login` and `gcloud config set project YOUR_GCP_PROJECT_ID`)
 
 ### Step 1: Setup and Initialization
 
