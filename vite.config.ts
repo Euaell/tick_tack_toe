@@ -6,7 +6,7 @@ export default defineConfig(() => {
 	const isGhPages = process.env.GITHUB_PAGES === 'true'
 	
 	return {
-		base: isGhPages ? '/tic_tac_toe/' : '/',
+		base: isGhPages ? '/tick_tack_toe/' : '/',
 		plugins: [react()],
 		resolve: {
 			alias: {
