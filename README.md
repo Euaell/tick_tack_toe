@@ -102,3 +102,11 @@ This setup provides a solid foundation for your multiplayer Tic-Tac-Toe game. It
 - Implementing a matchmaking system
 - Adding authentication
 - Scaling horizontally with multiple Node.js instances and a message broker like Redis
+
+## Requirements
+- Only two players can play the game at a time.
+- Can message each other while playing.
+- needs to have link to play with each other.
+- a player should be able to generate and send a link to the other player.
+- a player should be able to see the status of the other player.
+- clean up the group or resources after the game is over.
