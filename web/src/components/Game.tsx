@@ -6,7 +6,9 @@ import io from "socket.io-client";
 import { useParams, useNavigate } from 'react-router-dom';
 import uuidv4 from "@/helpers/uuidv4";
 
-const socket = io('http://localhost:8080', {
+const api_url = import.meta.env.VITE_SERVER_URL;
+
+const socket = io(api_url, {
   transports: ['websocket'],
   reconnection: true,
   reconnectionAttempts: 5,
@@ -43,7 +45,7 @@ export default function Game(): React.ReactElement {
     return () => {
       socket.off('gameUpdate', handleGameUpdate);
     };
-  }, [paramGameId, navigate, handleGameUpdate]);
+  }, [paramGameId, navigate, handleGameUpdate, gameId]);
 
   function handleClick(i: number) {
     if (calculateWinner(game.board) || game.board[i]) return;
