@@ -36,10 +36,10 @@ jobs:
           with:
             node-version: 20
         - name: Install dependencies
-          working-directory: ./
+          working-directory: ./web
           run: yarn install --frozen-lockfile
         - name: Build
-          working-directory: ./
+          working-directory: ./web
           run: yarn build
         - name: Setup Pages
           uses: actions/configure-pages@v4
@@ -47,7 +47,7 @@ jobs:
           uses: actions/upload-pages-artifact@v3
           with:
             # Upload dist folder from web directory
-            path: './dist'
+            path: './web/dist'
         - name: Deploy to GitHub Pages
           id: deployment
           uses: actions/deploy-pages@v4
