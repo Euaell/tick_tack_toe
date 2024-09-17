@@ -1,0 +1,121 @@
+/* TicTacToe.css */
+
+/* General Styles */
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin-top: 50px;
+  }
+  
+  #game-container {
+    width: 310px;
+    margin: 0 auto;
+    position: relative;
+  }
+  
+  svg {
+    width: 310px;
+    height: 310px;
+    position: relative;
+    z-index: 1;
+  }
+  
+  .cell {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    cursor: pointer;
+    box-sizing: border-box;
+    z-index: 3;
+  }
+  
+  /* Positioning cells over the SVG grid */
+  .cell[data-cell-index='0'] {
+    top: 0;
+    left: 0;
+  }
+  .cell[data-cell-index='1'] {
+    top: 0;
+    left: 105px;
+  }
+  .cell[data-cell-index='2'] {
+    top: 0;
+    left: 210px;
+  }
+  .cell[data-cell-index='3'] {
+    top: 105px;
+    left: 0;
+  }
+  .cell[data-cell-index='4'] {
+    top: 105px;
+    left: 105px;
+  }
+  .cell[data-cell-index='5'] {
+    top: 105px;
+    left: 210px;
+  }
+  .cell[data-cell-index='6'] {
+    top: 210px;
+    left: 0;
+  }
+  .cell[data-cell-index='7'] {
+    top: 210px;
+    left: 105px;
+  }
+  .cell[data-cell-index='8'] {
+    top: 210px;
+    left: 210px;
+  }
+  
+  #status {
+    margin-top: 20px;
+    font-size: 24px;
+  }
+  #reset {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 18px;
+    cursor: pointer;
+  }
+  
+  /* Animation for grid drawing */
+  .grid-line {
+    stroke-dasharray: 310;
+    stroke-dashoffset: 310;
+    animation: drawGrid 1.5s forwards ease-in-out;
+  }
+  
+  @keyframes drawGrid {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+  
+  /* Mark Animation */
+  .mark-path {
+    stroke-dasharray: 0;
+    stroke-dashoffset: 0;
+  }
+  
+  /* Pen Image */
+  .pen {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+    pointer-events: none;
+  }
+  
+  /* Erase Animation */
+  .erase-line {
+    stroke-dasharray: 310;
+    stroke-dashoffset: 0;
+    animation: eraseGrid 1.5s forwards ease-in-out;
+  }
+  
+  @keyframes eraseGrid {
+    to {
+      stroke-dashoffset: 310;
+    }
+  }

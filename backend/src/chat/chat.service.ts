@@ -2,9 +2,9 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class ChatService {
-  private chats: Record<string, string[]> = {};
+  private chats: Record<string, any[]> = {};
 
-  addMessage(gameId: string, message: string) {
+  addMessage(gameId: string, message: any) {
     if (!this.chats[gameId]) {
       this.chats[gameId] = [];
     }

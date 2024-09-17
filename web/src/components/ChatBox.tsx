@@ -1,33 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import io from 'socket.io-client';
-
-const api_url = import.meta.env.VITE_SERVER_URL;
-
-const socket = io(api_url, {
-  transports: ['websocket'],
-  reconnection: true,
-  reconnectionAttempts: 5,
-  reconnectionDelay: 1000,
-});
+import socket from '@/socket';
 
 function ChatBox({ gameId }: { gameId: string }): React.ReactElement {
-  const [messages, setMessages] = useState<string[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
   const [message, setMessage] = useState('');
+  const [file, setFile] = useState<File | null>(null);
 
   useEffect(() => {
-    // socket.emit('joinGame', gameId);
-
-    socket.on('receiveMessage', ({ message }) => {
-      setMessages((prevMessages) => [...prevMessages, message]);
+    socket.on('receiveMessage', ({ sender, message }) => {
+      setMessages((prevMessages) => [...prevMessages, { sender, message }]);
     });
 
-    socket.on('receiveMessages', (messages: string[]) => {
+    socket.on('fileShared', ({ sender, file }) => {
+      setMessages((prevMessages) => [...prevMessages, { sender, file }]);
+    });
+
+    socket.on('receiveMessages', (messages: any[]) => {
       setMessages(messages);
     });
 
     return () => {
-      socket.emit('leaveGame', gameId);
       socket.off('receiveMessage');
+      socket.off('fileShared');
       socket.off('receiveMessages');
     };
   }, [gameId]);
@@ -39,20 +33,57 @@ function ChatBox({ gameId }: { gameId: string }): React.ReactElement {
     }
   };
 
+  const sendFile = () => {
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function (event) {
+        const fileData = event.target?.result;
+        socket.emit('shareFile', {
+          gameId,
+          file: { name: file.name, data: fileData },
+        });
+      };
+      reader.readAsDataURL(file); // Read file as base64
+      setFile(null);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setFile(e.target.files[0]);
+    }
+  };
+
   return (
     <div>
       <div>
         {messages.map((msg, index) => (
-          <div key={index}>{msg}</div>
+          <div key={index}>
+            <strong>{msg.sender === socket.id ? 'You' : 'Opponent'}:</strong>{' '}
+            {msg.message && <span>{msg.message}</span>}
+            {msg.file && (
+              <div>
+                <span>File: {msg.file.name}</span>
+                <br />
+                <a href={msg.file.data} download={msg.file.name}>
+                  Download {msg.file.name}
+                </a>
+              </div>
+            )}
+          </div>
         ))}
       </div>
       <input
-        type="text"
+        type='text'
         value={message}
+        placeholder='Type your message...'
         onChange={(e) => setMessage(e.target.value)}
         onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
       />
       <button onClick={sendMessage}>Send</button>
+      <br />
+      <input type='file' onChange={handleFileChange} />
+      <button onClick={sendFile}>Send File</button>
     </div>
   );
 }

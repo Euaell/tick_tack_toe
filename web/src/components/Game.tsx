@@ -1,33 +1,30 @@
-import React, { useState, useEffect, useCallback } from "react";
-import Board from "@/components/Board";
-import ChatBox from "@/components/ChatBox";
-import { calculateWinner } from "@/helpers";
-import io from "socket.io-client";
+import React, { useState, useEffect, useCallback } from 'react';
+import Board from '@/components/Board';
+import ChatBox from '@/components/ChatBox';
+import { calculateWinner } from '@/helpers';
+import socket from '@/socket';
 import { useParams, useNavigate } from 'react-router-dom';
-import uuidv4 from "@/helpers/uuidv4";
-
-const api_url = import.meta.env.VITE_SERVER_URL;
-
-const socket = io(api_url, {
-  transports: ['websocket'],
-  reconnection: true,
-  reconnectionAttempts: 5,
-  reconnectionDelay: 1000,
-});
-
-const styles = {
-  width: "200px",
-  margin: "20px auto",
-};
+import uuidv4 from '@/helpers/uuidv4';
 
 export default function Game(): React.ReactElement {
-  const [game, setGame] = useState({ board: Array(9).fill(null), history: [Array(9).fill(null)], currentPlayer: 0 });
+  const [game, setGame] = useState({
+    board: Array(9).fill(null),
+    history: [Array(9).fill(null)],
+    currentPlayer: 0,
+  });
   const [gameId, setGameId] = useState('');
   const { gameId: paramGameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
+  const [winningCombination, setWinningCombination] = useState<number[] | null>(null);
 
   const handleGameUpdate = useCallback((updatedGame: any) => {
     setGame(updatedGame);
+    const result = calculateWinner(updatedGame.board);
+    if (result && result.winningCombination) {
+      setWinningCombination(result.winningCombination);
+    } else {
+      setWinningCombination(null);
+    }
   }, []);
 
   useEffect(() => {
@@ -48,43 +45,30 @@ export default function Game(): React.ReactElement {
   }, [paramGameId, navigate, handleGameUpdate, gameId]);
 
   function handleClick(i: number) {
-    if (calculateWinner(game.board) || game.board[i]) return;
+    if (calculateWinner(game.board)?.winner || game.board[i]) return;
     socket.emit('makeMove', { gameId, index: i });
   }
 
-  function jumpTo(step: number) {
-    // This functionality might need to be implemented on the server-side
-    // For now, we'll just update the local state
-    setGame(prevGame => ({
-      ...prevGame,
-      board: prevGame.history[step],
-      currentPlayer: step % 2 === 0 ? 0 : 1,
-    }));
-  }
-
-  function renderMoves() {
-    return game.history.map((_step: any, move: number) => {
-      const destination = move ? `Go to move #${move}` : "Go to start";
-      return (
-        <li key={move}>
-          <button onClick={() => jumpTo(move)}>{destination}</button>
-        </li>
-      );
-    });
-  }
-
-  const winner = calculateWinner(game.board);
+  const renderStatus = () => {
+    const result = calculateWinner(game.board);
+    if (result?.winner) {
+      return `Winner: ${result.winner}`;
+    } else if (!game.board.includes(null)) {
+      return "It's a tie!";
+    } else {
+      return `Next Player: ${game.currentPlayer === 0 ? 'X' : 'O'}`;
+    }
+  };
 
   return (
     <>
-      <Board squares={game.board} onClick={handleClick} />
-      <div style={styles}>
-        <p>{winner ? "Winner: " + winner : "Next Player: " + (game.currentPlayer === 0 ? "X" : "O")}</p>
-        {renderMoves()}
-        <p>Share this link to invite another player: 
-          <a href={window.location.href}>{window.location.href}</a>
-        </p>
-      </div>
+      <h1>Tic Tac Toe</h1>
+      <Board
+        squares={game.board}
+        onClick={handleClick}
+        winningCombination={winningCombination}
+      />
+      <div id='status'>{renderStatus()}</div>
       <ChatBox gameId={gameId} />
     </>
   );
