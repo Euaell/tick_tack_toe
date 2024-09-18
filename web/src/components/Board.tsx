@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 
 interface BoardProps {
   squares: (string | null)[];
@@ -9,15 +9,14 @@ interface BoardProps {
 export default function Board({ squares, onClick, winningCombination }: BoardProps): React.ReactElement {
   const gridRef = useRef<SVGSVGElement>(null);
 
-  useEffect(() => {
-    drawGridLines();
-  }, []);
-
-  function drawGridLines() {
+  const drawGridLines = useCallback(() => {
     const svgNS = 'http://www.w3.org/2000/svg';
     const grid = gridRef.current;
 
-    if (!grid) return;
+    if (!grid) {
+      console.error('Grid element not found');
+      return;
+    }
 
     // Clear any existing grid lines
     while (grid.firstChild) {
@@ -37,7 +36,11 @@ export default function Board({ squares, onClick, winningCombination }: BoardPro
 
     const hLine2 = createGridLine(svgNS, 0, 205, 310, 205);
     grid.appendChild(hLine2);
-  }
+  }, []);
+
+  useEffect(() => {
+    drawGridLines();
+  }, [drawGridLines]);
 
   function createGridLine(svgNS: string, x1: number, y1: number, x2: number, y2: number) {
     const line = document.createElementNS(svgNS, 'line') as SVGElement;
@@ -48,32 +51,30 @@ export default function Board({ squares, onClick, winningCombination }: BoardPro
     line.setAttribute('stroke', 'black');
     line.setAttribute('stroke-width', '5');
     line.setAttribute('class', 'grid-line');
-    // Calculate total length and set stroke-dasharray and stroke-dashoffset
     const length = Math.hypot(x2 - x1, y2 - y1);
     line.style.strokeDasharray = `${length}`;
     line.style.strokeDashoffset = `${length}`;
     return line;
   }
 
-  function handleCellClick(index: number) {
+  const handleCellClick = useCallback((index: number) => {
     onClick(index);
-  }
+  }, [onClick]);
 
-  useEffect(() => {
-    drawMarks();
-  }, [squares]);
-
-  function drawMarks() {
+  const drawMarks = useCallback(() => {
     const svgNS = 'http://www.w3.org/2000/svg';
     const grid = gridRef.current;
 
-    if (!grid) return;
+    if (!grid) {
+      console.error('Grid element not found');
+      return;
+    }
 
     // Remove existing marks
     const existingMarks = grid.querySelectorAll('.mark-path, .highlight-rect');
-    existingMarks.forEach((mark) => grid.removeChild(mark));
+    existingMarks?.forEach((mark) => grid.removeChild(mark));
 
-    squares.forEach((player, index) => {
+    squares?.forEach((player, index) => {
       if (player) {
         const x = (index % 3) * 105 + 50;
         const y = Math.floor(index / 3) * 105 + 50;
@@ -92,7 +93,7 @@ export default function Board({ squares, onClick, winningCombination }: BoardPro
           path.setAttribute('class', 'mark-path');
           grid.appendChild(path);
 
-          const totalLength = path.getTotalLength();
+          const totalLength = path.getTotalLength() || 0;
           path.style.strokeDasharray = `${totalLength}`;
           path.style.strokeDashoffset = `${totalLength}`;
 
@@ -124,7 +125,11 @@ export default function Board({ squares, onClick, winningCombination }: BoardPro
     if (winningCombination) {
       highlightWinningCells(winningCombination);
     }
-  }
+  }, [squares, winningCombination]);
+
+  useEffect(() => {
+    drawMarks();
+  }, [drawMarks]);
 
   function animateDrawing(element: SVGElement, totalLength: number) {
     let startTime: number | null = null;
@@ -148,7 +153,10 @@ export default function Board({ squares, onClick, winningCombination }: BoardPro
     const svgNS = 'http://www.w3.org/2000/svg';
     const grid = gridRef.current;
 
-    if (!grid) return;
+    if (!grid) {
+      console.error('Grid element not found');
+      return;
+    }
 
     condition.forEach((index) => {
       const x = (index % 3) * 105;
@@ -174,13 +182,16 @@ export default function Board({ squares, onClick, winningCombination }: BoardPro
         className='cell'
         data-cell-index={i}
         onClick={() => handleCellClick(i)}
+        role="button"
+        aria-label={`Cell ${i + 1}`}
+        tabIndex={0}
       ></div>
     );
   }
 
   return (
     <div id='game-container'>
-      <svg id='grid' xmlns='http://www.w3.org/2000/svg' ref={gridRef}>
+      <svg id='grid' xmlns='http://www.w3.org/2000/svg' ref={gridRef} aria-label="Tic-Tac-Toe Board">
         {/* Grid lines are added dynamically */}
       </svg>
       {/* Invisible clickable cells over the grid */}
