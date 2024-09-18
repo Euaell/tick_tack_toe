@@ -4,7 +4,6 @@ import Board from '@/components/Board';
 import ChatBox from '@/components/ChatBox';
 import { calculateWinner, isDraw } from '@/helpers';
 import socket from '@/socket';
-import uuidv4 from '@/helpers/uuidv4';
 
 type Square = 'X' | 'O' | null;
 
@@ -26,10 +25,10 @@ export default function Game(): React.ReactElement {
   const { gameId: paramGameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
   const [winningCombination, setWinningCombination] = useState<number[] | null>(null);
+  const [restartRequested, setRestartRequested] = useState(false);
 
   const handleGameUpdate = useCallback((updatedGame: GameState) => {
     setGame((prevGame) => {
-      // Ensure the board is always an array of 9 elements
       const validBoard = Array.isArray(updatedGame.board) && updatedGame.board.length === 9
         ? updatedGame.board
         : prevGame.board;
@@ -53,20 +52,35 @@ export default function Game(): React.ReactElement {
   }, []);
 
   useEffect(() => {
-    const id = paramGameId || uuidv4();
-    setGameId(id);
-
     if (!paramGameId) {
-      navigate(`/${id}`);
+      // Fetch new gameId from backend
+      fetch('http://localhost:8080/game', { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+          const newGameId = data.gameId;
+          setGameId(newGameId);
+          navigate(`/${newGameId}`);
+          // Now join the game
+          socket.emit('joinGame', newGameId);
+          socket.emit('requestGameState', newGameId);
+        })
+        .catch(err => {
+          console.error('Error creating new game:', err);
+        });
+    } else {
+      setGameId(paramGameId);
+
+      // Join the game
+      socket.emit('joinGame', paramGameId);
+      socket.emit('requestGameState', paramGameId);
     }
 
-    socket.emit('joinGame', id);
-    socket.emit('requestGameState', id);
-
     return () => {
-      socket.emit('leaveGame', id);
+      if (paramGameId || gameId) {
+        socket.emit('leaveGame', paramGameId || gameId);
+      }
     };
-  }, [paramGameId, navigate]);
+  }, [paramGameId, navigate, gameId]);
 
   useEffect(() => {
     socket.on('gameUpdate', handleGameUpdate);
@@ -79,7 +93,6 @@ export default function Game(): React.ReactElement {
   useEffect(() => {
     const handleConnectError = (error: Error) => {
       console.error('Socket connection error:', error);
-      // You might want to show an error message to the user here
     };
 
     socket.on('connect_error', handleConnectError);
@@ -91,8 +104,8 @@ export default function Game(): React.ReactElement {
 
   const handleClick = useCallback((i: number) => {
     if (calculateWinner(game.board) || game.board[i]) return;
-    socket.emit('makeMove', { gameId, index: i });
-  }, [game.board, gameId]);
+    socket.emit('makeMove', { gameId: paramGameId || gameId, index: i });
+  }, [game.board, gameId, paramGameId]);
 
   const renderStatus = useCallback(() => {
     const result = calculateWinner(game.board);
@@ -104,6 +117,42 @@ export default function Game(): React.ReactElement {
       return `Next Player: ${game.currentPlayer}`;
     }
   }, [game.board, game.currentPlayer]);
+
+  const handleRestart = useCallback(() => {
+    setRestartRequested(true);
+    socket.emit('requestRestart', { gameId: paramGameId || gameId });
+  }, [gameId, paramGameId]);
+
+  useEffect(() => {
+    const handleRestartRequest = () => {
+      if (window.confirm('Your opponent wants to restart the game. Do you agree?')) {
+        socket.emit('confirmRestart', { gameId: paramGameId || gameId, accept: true });
+      } else {
+        socket.emit('confirmRestart', { gameId: paramGameId || gameId, accept: false });
+      }
+    };
+
+    socket.on('restartRequest', handleRestartRequest);
+
+    const handleRestartConfirmed = (data: { accept: boolean }) => {
+      if (data.accept) {
+        // Restart the game
+        setGame(initialGameState);
+        setWinningCombination(null);
+        setRestartRequested(false);
+      } else {
+        alert('Your opponent declined the restart request.');
+        setRestartRequested(false);
+      }
+    };
+
+    socket.on('restartConfirmed', handleRestartConfirmed);
+
+    return () => {
+      socket.off('restartRequest', handleRestartRequest);
+      socket.off('restartConfirmed', handleRestartConfirmed);
+    };
+  }, [gameId, paramGameId]);
 
   return (
     <div className="game">
@@ -119,6 +168,9 @@ export default function Game(): React.ReactElement {
         <br />
         <a href={window.location.href}>{window.location.href}</a>
       </p>
+      <button onClick={handleRestart} disabled={restartRequested}>
+        {restartRequested ? 'Waiting for opponent...' : 'Restart Game'}
+      </button>
       <ChatBox gameId={gameId} />
     </div>
   );

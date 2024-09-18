@@ -1,4 +1,5 @@
-import io from 'socket.io-client';
+// import io from 'socket.io-client';
+import { io } from 'socket.io-client';
 
 const api_url = import.meta.env.VITE_SERVER_URL;
 
