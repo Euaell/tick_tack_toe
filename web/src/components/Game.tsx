@@ -1,91 +1,177 @@
-import React, { useState, useEffect, useCallback } from "react";
-import Board from "@/components/Board";
-import ChatBox from "@/components/ChatBox";
-import { calculateWinner } from "@/helpers";
-import io from "socket.io-client";
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import uuidv4 from "@/helpers/uuidv4";
+import Board from '@/components/Board';
+import ChatBox from '@/components/ChatBox';
+import { calculateWinner, isDraw } from '@/helpers';
+import socket from '@/socket';
 
-const api_url = import.meta.env.VITE_SERVER_URL;
+type Square = 'X' | 'O' | null;
 
-const socket = io(api_url, {
-  transports: ['websocket'],
-  reconnection: true,
-  reconnectionAttempts: 5,
-  reconnectionDelay: 1000,
-});
+interface GameState {
+  board: Square[];
+  history: Square[][];
+  currentPlayer: 'X' | 'O';
+}
 
-const styles = {
-  width: "200px",
-  margin: "20px auto",
+const initialGameState: GameState = {
+  board: Array(9).fill(null),
+  history: [Array(9).fill(null)],
+  currentPlayer: 'X',
 };
 
 export default function Game(): React.ReactElement {
-  const [game, setGame] = useState({ board: Array(9).fill(null), history: [Array(9).fill(null)], currentPlayer: 0 });
+  const [game, setGame] = useState<GameState>(initialGameState);
   const [gameId, setGameId] = useState('');
   const { gameId: paramGameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
+  const [winningCombination, setWinningCombination] = useState<number[] | null>(null);
+  const [restartRequested, setRestartRequested] = useState(false);
 
-  const handleGameUpdate = useCallback((updatedGame: any) => {
-    setGame(updatedGame);
+  const handleGameUpdate = useCallback((updatedGame: GameState) => {
+    setGame((prevGame) => {
+      const validBoard = Array.isArray(updatedGame.board) && updatedGame.board.length === 9
+        ? updatedGame.board
+        : prevGame.board;
+
+      const newGame = {
+        ...updatedGame,
+        board: validBoard,
+        currentPlayer: updatedGame.currentPlayer || prevGame.currentPlayer,
+        history: Array.isArray(updatedGame.history) ? updatedGame.history : prevGame.history,
+      };
+
+      const result = calculateWinner(newGame.board);
+      if (result) {
+        setWinningCombination(result.winningCombination);
+      } else {
+        setWinningCombination(null);
+      }
+
+      return newGame;
+    });
   }, []);
 
   useEffect(() => {
-    const id = paramGameId || uuidv4();
-    setGameId(id);
-
     if (!paramGameId) {
-      navigate(`/${id}`);
+      // Fetch new gameId from backend
+      fetch('http://localhost:8080/game', { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+          const newGameId = data.gameId;
+          setGameId(newGameId);
+          navigate(`/${newGameId}`);
+          // Now join the game
+          socket.emit('joinGame', newGameId);
+          socket.emit('requestGameState', newGameId);
+        })
+        .catch(err => {
+          console.error('Error creating new game:', err);
+        });
+    } else {
+      setGameId(paramGameId);
+
+      // Join the game
+      socket.emit('joinGame', paramGameId);
+      socket.emit('requestGameState', paramGameId);
     }
 
-    socket.emit('joinGame', id);
+    return () => {
+      if (paramGameId || gameId) {
+        socket.emit('leaveGame', paramGameId || gameId);
+      }
+    };
+  }, [paramGameId, navigate, gameId]);
 
+  useEffect(() => {
     socket.on('gameUpdate', handleGameUpdate);
 
     return () => {
       socket.off('gameUpdate', handleGameUpdate);
     };
-  }, [paramGameId, navigate, handleGameUpdate, gameId]);
+  }, [handleGameUpdate]);
 
-  function handleClick(i: number) {
+  useEffect(() => {
+    const handleConnectError = (error: Error) => {
+      console.error('Socket connection error:', error);
+    };
+
+    socket.on('connect_error', handleConnectError);
+
+    return () => {
+      socket.off('connect_error', handleConnectError);
+    };
+  }, []);
+
+  const handleClick = useCallback((i: number) => {
     if (calculateWinner(game.board) || game.board[i]) return;
-    socket.emit('makeMove', { gameId, index: i });
-  }
+    socket.emit('makeMove', { gameId: paramGameId || gameId, index: i });
+  }, [game.board, gameId, paramGameId]);
 
-  function jumpTo(step: number) {
-    // This functionality might need to be implemented on the server-side
-    // For now, we'll just update the local state
-    setGame(prevGame => ({
-      ...prevGame,
-      board: prevGame.history[step],
-      currentPlayer: step % 2 === 0 ? 0 : 1,
-    }));
-  }
+  const renderStatus = useCallback(() => {
+    const result = calculateWinner(game.board);
+    if (result) {
+      return `Winner: ${result.winner}`;
+    } else if (isDraw(game.board)) {
+      return "It's a tie!";
+    } else {
+      return `Next Player: ${game.currentPlayer}`;
+    }
+  }, [game.board, game.currentPlayer]);
 
-  function renderMoves() {
-    return game.history.map((_step: any, move: number) => {
-      const destination = move ? `Go to move #${move}` : "Go to start";
-      return (
-        <li key={move}>
-          <button onClick={() => jumpTo(move)}>{destination}</button>
-        </li>
-      );
-    });
-  }
+  const handleRestart = useCallback(() => {
+    setRestartRequested(true);
+    socket.emit('requestRestart', { gameId: paramGameId || gameId });
+  }, [gameId, paramGameId]);
 
-  const winner = calculateWinner(game.board);
+  useEffect(() => {
+    const handleRestartRequest = () => {
+      if (window.confirm('Your opponent wants to restart the game. Do you agree?')) {
+        socket.emit('confirmRestart', { gameId: paramGameId || gameId, accept: true });
+      } else {
+        socket.emit('confirmRestart', { gameId: paramGameId || gameId, accept: false });
+      }
+    };
+
+    socket.on('restartRequest', handleRestartRequest);
+
+    const handleRestartConfirmed = (data: { accept: boolean }) => {
+      if (data.accept) {
+        // Restart the game
+        setGame(initialGameState);
+        setWinningCombination(null);
+        setRestartRequested(false);
+      } else {
+        alert('Your opponent declined the restart request.');
+        setRestartRequested(false);
+      }
+    };
+
+    socket.on('restartConfirmed', handleRestartConfirmed);
+
+    return () => {
+      socket.off('restartRequest', handleRestartRequest);
+      socket.off('restartConfirmed', handleRestartConfirmed);
+    };
+  }, [gameId, paramGameId]);
 
   return (
-    <>
-      <Board squares={game.board} onClick={handleClick} />
-      <div style={styles}>
-        <p>{winner ? "Winner: " + winner : "Next Player: " + (game.currentPlayer === 0 ? "X" : "O")}</p>
-        {renderMoves()}
-        <p>Share this link to invite another player: 
-          <a href={window.location.href}>{window.location.href}</a>
-        </p>
-      </div>
+    <div className="game">
+      <h1>Tic Tac Toe</h1>
+      <Board
+        squares={game.board}
+        onClick={handleClick}
+        winningCombination={winningCombination}
+      />
+      <div id='status' aria-live="polite">{renderStatus()}</div>
+      <p>
+        Share this link to invite another player:
+        <br />
+        <a href={window.location.href}>{window.location.href}</a>
+      </p>
+      <button onClick={handleRestart} disabled={restartRequested}>
+        {restartRequested ? 'Waiting for opponent...' : 'Restart Game'}
+      </button>
       <ChatBox gameId={gameId} />
-    </>
+    </div>
   );
 }
