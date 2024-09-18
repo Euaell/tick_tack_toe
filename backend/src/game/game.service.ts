@@ -1,86 +1,97 @@
 import { Injectable } from '@nestjs/common';
+import { RedisClientType } from '@redis/client';
 import { createClient } from 'redis';
 import { ConfigurationService } from 'src/configuration/configuration.service';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class GameService {
+  private client: RedisClientType;
+
   constructor(
     private readonly configService: ConfigurationService,
   ) {
+    this.client = createClient({ url: this.configService.get('REDIS_URL') });
     this.client.connect();
   }
 
-  private client = createClient({ url: this.configService.get('REDIS_URL') });
-
-  async createGame(gameId: string, clientId: string) {
+  async createGame(gameId?: string) {
+    const id = gameId || uuidv4();
     const game = {
+      gameId: id,
       board: Array(9).fill(null),
-      players: [clientId],
+      players: [],
       currentPlayer: 0,
       history: [Array(9).fill(null)],
     };
-    await this.client.set(`game:${gameId}`, JSON.stringify(game));
+    await this.client.set(`game:${id}`, JSON.stringify(game));
     return game;
   }
 
   async joinGame(gameId: string, clientId: string) {
-    // if (!this.games[gameId]) {
-    //   return this.createGame(gameId, clientId);
-    // }
-    // if (this.games[gameId].players.length < 2 && !this.games[gameId].players.includes(clientId)) {
-    //   this.games[gameId].players.push(clientId);
-    // }
-    // return this.games[gameId];
-    const game = await this.client.get(`game:${gameId}`);
-    if (!game) {
-      return this.createGame(gameId, clientId);
+    const gameData = await this.client.get(`game:${gameId}`);
+    if (!gameData) {
+      // Game does not exist, create a new one
+      const game = await this.createGame(gameId);
+      if (clientId) {
+        game.players.push(clientId);
+        await this.updateGame(gameId, game);
+      }
+      return game;
     }
-    const parsedGame = JSON.parse(game);
-    if (parsedGame.players.length < 2 && !parsedGame.players.includes(clientId)) {
-      parsedGame.players.push(clientId);
+    const game = JSON.parse(gameData);
+    if (game.players.length < 2 && !game.players.includes(clientId)) {
+      game.players.push(clientId);
+      await this.updateGame(gameId, game);
     }
-    await this.client.set(`game:${gameId}`, JSON.stringify(parsedGame));
-    return parsedGame;
+    return game;
   }
 
-  makeMove(gameId: string, clientId: string, index: number) {
-    // const game = this.games[gameId];
-    // if (game && game.players[game.currentPlayer] === clientId) {
-    //   const newBoard = [...game.board];
-    //   newBoard[index] = game.currentPlayer === 0 ? 'X' : 'O';
-    //   game.board = newBoard;
-    //   game.history.push(newBoard);
-    //   game.currentPlayer = 1 - game.currentPlayer;
-    // }
-    // return game;
-    return this.client.get(`game:${gameId}`).then((game) => {
-      const parsedGame = JSON.parse(game);
-      if (parsedGame && parsedGame.players[parsedGame.currentPlayer] === clientId) {
-        const newBoard = [...parsedGame.board];
-        newBoard[index] = parsedGame.currentPlayer === 0 ? 'X' : 'O';
-        parsedGame.board = newBoard;
-        parsedGame.history.push(newBoard);
-        parsedGame.currentPlayer = 1 - parsedGame.currentPlayer;
-        return this.client.set(`game:${gameId}`, JSON.stringify(parsedGame)).then(() => parsedGame);
+  async makeMove(gameId: string, clientId: string, index: number) {
+    const gameData = await this.client.get(`game:${gameId}`);
+    if (gameData) {
+      const game = JSON.parse(gameData);
+      const currentSymbol = game.currentPlayer === 0 ? 'X' : 'O';
+      if (game.players[game.currentPlayer] === clientId && !game.board[index]) {
+        game.board[index] = currentSymbol;
+        game.history.push([...game.board]);
+        game.currentPlayer = 1 - game.currentPlayer;
+        await this.updateGame(gameId, game);
+        return game;
       }
-      return parsedGame;
-    });
+      return game;
+    }
+    return null;
   }
 
   async getGame(gameId: string) {
-    // return this.games[gameId];
-    const game = await this.client.get(`game:${gameId}`);
-    return JSON.parse(game);
+    const gameData = await this.client.get(`game:${gameId}`);
+    return gameData ? JSON.parse(gameData) : null;
   }
 
   async getAllGames() {
-    // return Object.keys(this.games);
     const keys = await this.client.keys('game:*');
     return keys.map((key) => key.split(':')[1]);
   }
 
   async cleanup(gameId: string) {
-    // delete this.games[gameId];
     await this.client.del(`game:${gameId}`);
+  }
+
+  async updateGame(gameId: string, gameData: any) {
+    await this.client.set(`game:${gameId}`, JSON.stringify(gameData));
+  }
+
+  async resetGame(gameId: string) {
+    const gameData = await this.client.get(`game:${gameId}`);
+    if (gameData) {
+      const game = JSON.parse(gameData);
+      game.board = Array(9).fill(null);
+      game.currentPlayer = 0;
+      game.history = [Array(9).fill(null)];
+      await this.updateGame(gameId, game);
+      return game;
+    }
+    return null;
   }
 }

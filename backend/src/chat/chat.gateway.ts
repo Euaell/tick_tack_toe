@@ -20,7 +20,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   handleDisconnect(client: Socket) {
     console.log('Client disconnected:', client.id);
-    // Handle client disconnect logic if needed
+  }
+
+  @SubscribeMessage('joinChat')
+  handleJoinChat(client: Socket, gameId: string) {
+    client.join(gameId);
+    console.log(`Client ${client.id} joined chat for game ${gameId}`);
   }
 
   @SubscribeMessage('sendMessage')
@@ -28,26 +33,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client: Socket,
     { gameId, message }: { gameId: string; message: string },
   ) {
-    this.chatService.addMessage(gameId, { sender: client.id, message });
-    this.server.to(gameId).emit('receiveMessage', {
-      sender: client.id,
-      message,
-    });
+    const chatMessage = { sender: client.id, message };
+    this.chatService.addMessage(gameId, chatMessage);
+    this.server.to(gameId).emit('receiveMessage', chatMessage);
   }
 
   @SubscribeMessage('getMessages')
   handleGetMessages(client: Socket, gameId: string) {
     const messages = this.chatService.getMessages(gameId);
     client.emit('receiveMessages', messages);
-  }
-
-  @SubscribeMessage('shareFile')
-  handleShareFile(
-    client: Socket,
-    { gameId, file }: { gameId: string; file: any },
-  ) {
-    console.log(`Received file from ${client.id}`);
-    this.chatService.addMessage(gameId, { sender: client.id, file });
-    this.server.to(gameId).emit('fileShared', { sender: client.id, file });
   }
 }
