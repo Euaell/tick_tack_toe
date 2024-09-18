@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Board from '@/components/Board';
 import ChatBox from '@/components/ChatBox';
 import { calculateWinner, isDraw } from '@/helpers';
-import socket from '@/socket';
+import socket, { api_url } from '@/socket';
 
 type Square = 'X' | 'O' | null;
 
@@ -54,7 +54,7 @@ export default function Game(): React.ReactElement {
   useEffect(() => {
     if (!paramGameId) {
       // Fetch new gameId from backend
-      fetch('http://localhost:8080/game', { method: 'POST' })
+      fetch(`${api_url}/game`, { method: 'POST' })
         .then(res => res.json())
         .then(data => {
           const newGameId = data.gameId;
