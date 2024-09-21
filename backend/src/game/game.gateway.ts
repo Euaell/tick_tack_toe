@@ -1,11 +1,17 @@
-import { SubscribeMessage, WebSocketGateway, OnGatewayConnection, OnGatewayDisconnect, WebSocketServer } from '@nestjs/websockets';
+import {
+  SubscribeMessage,
+  WebSocketGateway,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+  WebSocketServer,
+} from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { GameService } from './game.service';
 
 @WebSocketGateway({ cors: { origin: '*' } })
 export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
-  server: Server;
+  private readonly server: Server;
 
   constructor(private readonly gameService: GameService) {}
 
@@ -15,35 +21,53 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   async handleDisconnect(client: Socket) {
     console.log('Client disconnected:', client.id);
-    const allGames = await this.gameService.getAllGames();
-    for (const gameId of allGames) {
-      const game = await this.gameService.getGame(gameId);
-      if (game.players.includes(client.id)) {
-        game.players = game.players.filter(p => p !== client.id);
-        if (game.players.length === 0) {
-          await this.gameService.cleanup(gameId);
-        } else {
-          await this.gameService.updateGame(gameId, game);
-          this.server.to(gameId).emit('playerLeft', { gameId });
+    const gameId = client.data.gameId;
+
+    if (gameId) {
+      try {
+        const game = await this.gameService.getGame(gameId);
+        if (game && game.players.includes(client.id)) {
+          game.players = game.players.filter((p) => p !== client.id);
+          if (game.players.length === 0) {
+            await this.gameService.cleanup(gameId);
+          } else {
+            await this.gameService.setGame(gameId, game);
+            this.server.to(gameId).emit('playerLeft', { gameId, playerId: client.id });
+          }
         }
+      } catch (error) {
+        console.error(`Error handling disconnect for client ${client.id}:`, error);
       }
     }
   }
 
   @SubscribeMessage('joinGame')
   async handleJoinGame(client: Socket, gameId: string) {
-    const game = await this.gameService.joinGame(gameId, client.id);
-    client.join(gameId);
-    console.log(`Client ${client.id} joined game ${gameId}`);
-    this.server.to(gameId).emit('gameUpdate', game);
+    try {
+      const game = await this.gameService.joinGame(gameId, client.id);
+      client.join(gameId);
+      client.data.gameId = gameId;
+      console.log(`Client ${client.id} joined game ${gameId}`);
+      this.server.to(gameId).emit('gameUpdate', game);
+    } catch (error) {
+      console.error(`Error handling joinGame for client ${client.id}:`, error);
+      client.emit('error', { message: 'Failed to join game.' });
+    }
   }
 
   @SubscribeMessage('makeMove')
-  async handleMakeMove(client: Socket, payload: { gameId: string, index: number }) {
+  async handleMakeMove(client: Socket, payload: { gameId: string; index: number }) {
     const { gameId, index } = payload;
-    const game = await this.gameService.makeMove(gameId, client.id, index);
-    if (game) {
-      this.server.to(gameId).emit('gameUpdate', game);
+    try {
+      const game = await this.gameService.makeMove(gameId, client.id, index);
+      if (game) {
+        this.server.to(gameId).emit('gameUpdate', game);
+      } else {
+        client.emit('error', { message: 'Invalid move or not your turn.' });
+      }
+    } catch (error) {
+      console.error(`Error handling makeMove for client ${client.id}:`, error);
+      client.emit('error', { message: 'Failed to make move.' });
     }
   }
 
@@ -51,21 +75,31 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleRequestRestart(client: Socket, payload: { gameId: string }) {
     const { gameId } = payload;
     // Notify other players in the game
-    client.to(gameId).emit('restartRequest');
+    client.to(gameId).emit('restartRequest', { playerId: client.id });
   }
 
   @SubscribeMessage('confirmRestart')
-  async handleConfirmRestart(client: Socket, payload: { gameId: string, accept: boolean }) {
+  async handleConfirmRestart(
+    client: Socket,
+    payload: { gameId: string; accept: boolean },
+  ) {
     const { gameId, accept } = payload;
-    if (accept) {
-      // Reset the game state
-      const game = await this.gameService.resetGame(gameId);
-      if (game) {
-        this.server.to(gameId).emit('gameUpdate', game);
-        this.server.to(gameId).emit('restartConfirmed', { accept: true });
+    try {
+      if (accept) {
+        // Reset the game state
+        const game = await this.gameService.resetGame(gameId);
+        if (game) {
+          this.server.to(gameId).emit('gameUpdate', game);
+          this.server.to(gameId).emit('restartConfirmed', { accept: true });
+        } else {
+          client.emit('error', { message: 'Failed to reset game.' });
+        }
+      } else {
+        client.to(gameId).emit('restartConfirmed', { accept: false, playerId: client.id });
       }
-    } else {
-      client.to(gameId).emit('restartConfirmed', { accept: false });
+    } catch (error) {
+      console.error(`Error handling confirmRestart for client ${client.id}:`, error);
+      client.emit('error', { message: 'Failed to process restart confirmation.' });
     }
   }
 }
