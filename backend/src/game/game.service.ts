@@ -9,6 +9,7 @@ interface Game {
   players: string[];
   currentPlayer: number;
   history: (string | null)[][];
+  playerSymbols: { [playerId: string]: 'X' | 'O' };
 }
 
 @Injectable()
@@ -46,6 +47,7 @@ export class GameService {
       players: [],
       currentPlayer: 0,
       history: [Array(9).fill(null)],
+      playerSymbols: {},
     };
     await this.setGame(id, game);
     return game;
@@ -65,6 +67,8 @@ export class GameService {
         game.players.push(clientId);
         await this.setGame(gameId, game);
       }
+      const playerIndex = game.players.findIndex((id) => id === clientId);
+      game.playerSymbols[clientId] = playerIndex === 0 ? 'X' : 'O';
       return game;
     } else {
       const game: Game = JSON.parse(gameData);
@@ -72,6 +76,8 @@ export class GameService {
         game.players.push(clientId);
         await this.setGame(gameId, game);
       }
+      const playerIndex = game.players.findIndex((id) => id === clientId);
+      game.playerSymbols[clientId] = playerIndex === 0 ? 'X' : 'O';
       return game;
     }
   }

@@ -42,23 +42,27 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('joinGame')
-  async handleJoinGame(client: Socket, gameId: string) {
-    try {
-      const game = await this.gameService.joinGame(gameId, client.id);
-      client.join(gameId);
-      client.data.gameId = gameId;
-      console.log(`Client ${client.id} joined game ${gameId}`);
+async handleJoinGame(client: Socket, gameId: string) {
+  try {
+    const game = await this.gameService.joinGame(gameId, client.id);
+    client.join(gameId);
+    client.data.gameId = gameId;
+    console.log(`Client ${client.id} joined game ${gameId}`);
 
-      // Emit 'playerJoined' event to other players in the game
-      client.to(gameId).emit('playerJoined', { gameId, playerId: client.id });
+    // Emit 'playerJoined' event to other players in the game
+    client.to(gameId).emit('playerJoined', { gameId, playerId: client.id });
 
-      // Send the updated game state to all players in the game
-      this.server.to(gameId).emit('gameUpdate', game);
-    } catch (error) {
-      console.error(`Error handling joinGame for client ${client.id}:`, error);
-      client.emit('error', { message: 'Failed to join game.' });
-    }
+    // Send the updated game state to all players in the game
+    this.server.to(gameId).emit('gameUpdate', game);
+
+    // **Emit the assigned symbol back to the client**
+    const playerSymbol = game.playerSymbols[client.id];
+    client.emit('assignedSymbol', { symbol: playerSymbol });
+  } catch (error) {
+    console.error(`Error handling joinGame for client ${client.id}:`, error);
+    client.emit('error', { message: 'Failed to join game.' });
   }
+}
 
   @SubscribeMessage('makeMove')
   async handleMakeMove(client: Socket, payload: { gameId: string; index: number }) {
