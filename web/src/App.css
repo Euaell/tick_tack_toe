@@ -119,3 +119,50 @@ svg {
     stroke-dashoffset: 310;
   }
 }
+
+/* Notification for opponent status */
+.opponent-status {
+  margin-top: 10px;
+  font-weight: bold;
+  color: #333;
+}
+
+/* Share link section */
+.share-link {
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
+
+.share-link button {
+  padding: 8px 12px;
+  margin-right: 10px;
+}
+
+.link-section {
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.link-section input {
+  width: 300px;
+  padding: 6px;
+  margin-right: 10px;
+}
+
+.link-section button {
+  padding: 8px 12px;
+}
+
+/* Copy animation */
+.copy-animation {
+  margin-left: 10px;
+  color: green;
+  font-weight: bold;
+  animation: fadeOut 2s forwards;
+}
+
+@keyframes fadeOut {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}

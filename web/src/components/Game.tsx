@@ -26,6 +26,9 @@ export default function Game(): React.ReactElement {
   const navigate = useNavigate();
   const [winningCombination, setWinningCombination] = useState<number[] | null>(null);
   const [restartRequested, setRestartRequested] = useState(false);
+  const [opponentStatus, setOpponentStatus] = useState('Waiting for opponent to join...');
+  const [showLink, setShowLink] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   const handleGameUpdate = useCallback((updatedGame: GameState) => {
     setGame((prevGame) => {
@@ -52,6 +55,7 @@ export default function Game(): React.ReactElement {
   }, []);
 
   useEffect(() => {
+    // Similar code for joining or creating a game
     if (!paramGameId) {
       // Fetch new gameId from backend
       fetch(`${api_url}/game`, { method: 'POST' })
@@ -62,7 +66,6 @@ export default function Game(): React.ReactElement {
           navigate(`/${newGameId}`);
           // Now join the game
           socket.emit('joinGame', newGameId);
-          socket.emit('requestGameState', newGameId);
         })
         .catch(err => {
           console.error('Error creating new game:', err);
@@ -72,7 +75,6 @@ export default function Game(): React.ReactElement {
 
       // Join the game
       socket.emit('joinGame', paramGameId);
-      socket.emit('requestGameState', paramGameId);
     }
 
     return () => {
@@ -85,8 +87,25 @@ export default function Game(): React.ReactElement {
   useEffect(() => {
     socket.on('gameUpdate', handleGameUpdate);
 
+    // Handle opponent connection
+    const handlePlayerJoined = (data: { gameId: string; playerId: string }) => {
+      setOpponentStatus('Opponent connected.');
+      console.log('Opponent connected:', data.playerId);
+    };
+
+    // Handle opponent disconnection
+    const handlePlayerLeft = (data: { gameId: string; playerId: string }) => {
+      setOpponentStatus('Opponent disconnected.');
+      console.log('Opponent disconnected:', data.playerId);
+    };
+
+    socket.on('playerJoined', handlePlayerJoined);
+    socket.on('playerLeft', handlePlayerLeft);
+
     return () => {
       socket.off('gameUpdate', handleGameUpdate);
+      socket.off('playerJoined', handlePlayerJoined);
+      socket.off('playerLeft', handlePlayerLeft);
     };
   }, [handleGameUpdate]);
 
@@ -154,6 +173,16 @@ export default function Game(): React.ReactElement {
     };
   }, [gameId, paramGameId]);
 
+  // Add copy link functionality
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000); // Reset after 2 seconds
+    }, () => {
+      console.error('Failed to copy the link.');
+    });
+  };
+
   return (
     <div className="game">
       <h1>Tic Tac Toe</h1>
@@ -163,11 +192,24 @@ export default function Game(): React.ReactElement {
         winningCombination={winningCombination}
       />
       <div id='status' aria-live="polite">{renderStatus()}</div>
-      <p>
-        Share this link to invite another player:
-        <br />
-        <a href={window.location.href}>{window.location.href}</a>
-      </p>
+      <div className="opponent-status">{opponentStatus}</div>
+      
+      {/* Copy Link Button */}
+      <div className="share-link">
+        <button onClick={() => setShowLink(!showLink)}>
+          {showLink ? 'Hide Invite Link' : 'Show Invite Link'}
+        </button>
+        {showLink && (
+          <div className="link-section">
+            <input type="text" value={window.location.href} readOnly />
+            <button onClick={handleCopyLink}>
+              {copySuccess ? 'Copied!' : 'Copy Link'}
+            </button>
+            {copySuccess && <div className="copy-animation">Link Copied!</div>}
+          </div>
+        )}
+      </div>
+      
       <button onClick={handleRestart} disabled={restartRequested}>
         {restartRequested ? 'Waiting for opponent...' : 'Restart Game'}
       </button>

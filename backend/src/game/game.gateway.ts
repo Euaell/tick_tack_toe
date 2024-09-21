@@ -48,6 +48,11 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.join(gameId);
       client.data.gameId = gameId;
       console.log(`Client ${client.id} joined game ${gameId}`);
+
+      // Emit 'playerJoined' event to other players in the game
+      client.to(gameId).emit('playerJoined', { gameId, playerId: client.id });
+
+      // Send the updated game state to all players in the game
       this.server.to(gameId).emit('gameUpdate', game);
     } catch (error) {
       console.error(`Error handling joinGame for client ${client.id}:`, error);
