@@ -166,3 +166,29 @@ svg {
   0% { opacity: 1; }
   100% { opacity: 0; }
 }
+
+/* Animations */
+#draw-animation {
+  color: teal;
+}
+
+.animation-text {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  z-index: 1000;
+  font-size: 3rem;
+  font-weight: bold;
+  text-align: center;
+  pointer-events: none;
+}
+
+#winner-animation {
+  color: gold;
+}
+
+#loser-animation {
+  color: crimson;
+}
