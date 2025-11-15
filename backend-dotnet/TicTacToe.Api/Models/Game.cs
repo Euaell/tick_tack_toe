@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace TicTacToe.Api.Models;
 
 public class Game
@@ -14,6 +16,10 @@ public class Game
     public DateTime CreatedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
     public DateTime LastMoveAt { get; set; }
+
+    // Concurrency control
+    [Timestamp]
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
     // Navigation properties
     public User? PlayerX { get; set; }
