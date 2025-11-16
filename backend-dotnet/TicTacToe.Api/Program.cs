@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
+using TicTacToe.Api.Configuration;
 using TicTacToe.Api.Data;
 using TicTacToe.Api.Hubs;
 using TicTacToe.Api.Services;
@@ -23,6 +24,12 @@ var redisConnection = builder.Configuration.GetConnectionString("Redis")
     ?? throw new InvalidOperationException("Connection string 'Redis' not found.");
 
 builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnection));
+
+// Configure JWT
+var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>()
+    ?? throw new InvalidOperationException("JWT settings not found in configuration.");
+builder.Services.AddSingleton(jwtSettings);
+builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 
 // Register services
 builder.Services.AddScoped<IRedisService, RedisService>();
