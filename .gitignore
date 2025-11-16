@@ -1,0 +1,28 @@
+.env
+bin/
+obj/
+# Visual Studio generated files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+*.generated.cs
+
+# Rider generated files
+.idea/
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+[Bb]uild/
+[Tt]est[Rr]esults/
+
+# NuGet packages
+packages/
+*.nupkg
+
+# Other
+*.log
+*.tmp
+*.bak
