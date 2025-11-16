@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Script from "next/script";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -14,6 +15,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <Script src="/env-config.js" strategy="beforeInteractive" />
+      </head>
       <body className="antialiased bg-gradient-to-br from-blue-50 to-purple-50 min-h-screen">
         <nav className="bg-white shadow-md">
           <div className="container mx-auto px-4 py-4">
