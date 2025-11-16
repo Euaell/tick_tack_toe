@@ -22,7 +22,7 @@ public class AuthService : IAuthService
 
     public async Task<LoginResponse> LoginAsync(string? username)
     {
-        User user;
+        User? user;
         bool isAnonymous = string.IsNullOrWhiteSpace(username);
 
         if (isAnonymous)

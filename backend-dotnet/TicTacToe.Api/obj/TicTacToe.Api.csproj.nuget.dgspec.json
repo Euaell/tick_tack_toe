@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "/home/user/tick_tack_toe/backend-dotnet/TicTacToe.Api/TicTacToe.Api.csproj": {}
+    "G:\\_Projects\\tick_tack_toe\\backend-dotnet\\TicTacToe.Api\\TicTacToe.Api.csproj": {}
   },
   "projects": {
-    "/home/user/tick_tack_toe/backend-dotnet/TicTacToe.Api/TicTacToe.Api.csproj": {
+    "G:\\_Projects\\tick_tack_toe\\backend-dotnet\\TicTacToe.Api\\TicTacToe.Api.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/home/user/tick_tack_toe/backend-dotnet/TicTacToe.Api/TicTacToe.Api.csproj",
+        "projectUniqueName": "G:\\_Projects\\tick_tack_toe\\backend-dotnet\\TicTacToe.Api\\TicTacToe.Api.csproj",
         "projectName": "TicTacToe.Api",
-        "projectPath": "/home/user/tick_tack_toe/backend-dotnet/TicTacToe.Api/TicTacToe.Api.csproj",
-        "packagesPath": "/root/.nuget/packages/",
-        "outputPath": "/home/user/tick_tack_toe/backend-dotnet/TicTacToe.Api/obj/",
+        "projectPath": "G:\\_Projects\\tick_tack_toe\\backend-dotnet\\TicTacToe.Api\\TicTacToe.Api.csproj",
+        "packagesPath": "C:\\Users\\euael\\.nuget\\packages\\",
+        "outputPath": "G:\\_Projects\\tick_tack_toe\\backend-dotnet\\TicTacToe.Api\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/root/.nuget/NuGet/NuGet.Config"
+          "C:\\Users\\euael\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net9.0"
@@ -38,15 +38,77 @@
           "auditLevel": "low",
           "auditMode": "direct"
         },
-        "SdkAnalysisLevel": "9.0.300"
+        "SdkAnalysisLevel": "9.0.200"
       },
       "frameworks": {
         "net9.0": {
           "targetAlias": "net9.0",
           "dependencies": {
+            "AspNetCore.HealthChecks.NpgSql": {
+              "target": "Package",
+              "version": "[9.0.0, )"
+            },
+            "AspNetCore.HealthChecks.Redis": {
+              "target": "Package",
+              "version": "[9.0.0, )"
+            },
+            "AspNetCoreRateLimit": {
+              "target": "Package",
+              "version": "[5.0.0, )"
+            },
+            "FluentValidation.AspNetCore": {
+              "target": "Package",
+              "version": "[11.3.0, )"
+            },
+            "Microsoft.AspNetCore.Authentication.JwtBearer": {
+              "target": "Package",
+              "version": "[9.0.0, )"
+            },
             "Microsoft.AspNetCore.OpenApi": {
               "target": "Package",
               "version": "[9.0.11, )"
+            },
+            "Microsoft.AspNetCore.SignalR": {
+              "target": "Package",
+              "version": "[1.1.0, )"
+            },
+            "Microsoft.EntityFrameworkCore": {
+              "target": "Package",
+              "version": "[9.0.0, )"
+            },
+            "Microsoft.EntityFrameworkCore.Design": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[9.0.0, )"
+            },
+            "Npgsql.EntityFrameworkCore.PostgreSQL": {
+              "target": "Package",
+              "version": "[9.0.0, )"
+            },
+            "Serilog.AspNetCore": {
+              "target": "Package",
+              "version": "[8.0.3, )"
+            },
+            "Serilog.Sinks.Console": {
+              "target": "Package",
+              "version": "[6.0.0, )"
+            },
+            "Serilog.Sinks.File": {
+              "target": "Package",
+              "version": "[6.0.0, )"
+            },
+            "StackExchange.Redis": {
+              "target": "Package",
+              "version": "[2.8.16, )"
+            },
+            "Swashbuckle.AspNetCore": {
+              "target": "Package",
+              "version": "[7.2.0, )"
+            },
+            "System.IdentityModel.Tokens.Jwt": {
+              "target": "Package",
+              "version": "[8.2.1, )"
             }
           },
           "imports": [
@@ -68,7 +130,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/root/.dotnet/sdk/9.0.307/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.200/PortableRuntimeIdentifierGraph.json"
         }
       }
     }
