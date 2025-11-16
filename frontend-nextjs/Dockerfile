@@ -12,6 +12,9 @@ RUN npm ci
 # Copy source files
 COPY . .
 
+# Ensure public directory exists (create if it doesn't)
+RUN mkdir -p public
+
 # Build the application
 RUN npm run build
 
