@@ -81,7 +81,7 @@ export default function Home() {
           </button>
 
           <p className="text-sm text-gray-500 text-center mt-4">
-            Guest accounts won't be tracked in the leaderboard
+            Guest accounts won&apos;t be tracked in the leaderboard
           </p>
         </div>
       </div>
