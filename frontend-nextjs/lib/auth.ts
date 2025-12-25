@@ -11,8 +11,10 @@ export const auth = betterAuth({
     enabled: false,
   },
   socialProviders: {},
-  // Enable anonymous authentication
+  // Configure database options
   advanced: {
-    generateId: () => crypto.randomUUID(),
+    database: {
+      generateId: () => crypto.randomUUID(),
+    },
   },
 });

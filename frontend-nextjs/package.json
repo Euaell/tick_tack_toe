@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@microsoft/signalr": "^10.0.0",
+    "@tailwindcss/postcss": "^4.1.18",
     "better-auth": "^1.4.9",
     "next": "^16.1.1",
     "react": "^19.2.3",
