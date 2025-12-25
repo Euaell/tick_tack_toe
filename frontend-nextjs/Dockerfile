@@ -1,13 +1,13 @@
 # Build stage
-FROM node:22-alpine AS builder
+FROM oven/bun:1-alpine AS builder
 
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY package.json bun.lockb ./
 
 # Install dependencies
-RUN npm ci
+RUN bun install --frozen-lockfile
 
 # Copy source files
 COPY . .
@@ -16,10 +16,10 @@ COPY . .
 RUN mkdir -p public
 
 # Build the application
-RUN npm run build
+RUN bun run build
 
 # Production stage
-FROM node:22-alpine AS runner
+FROM oven/bun:1-alpine AS runner
 
 WORKDIR /app
 
