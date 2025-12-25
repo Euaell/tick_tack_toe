@@ -23,11 +23,7 @@ export const ENV = {
   AUTH_URL: getEnvVar('BETTER_AUTH_URL', 'http://localhost:3000'),
 } as const;
 
-// Helper to determine if we should use the window location origin
+// Helper to get API URL
 export function getApiUrl(): string {
-  // If in browser and API_URL is still localhost, try to use the current origin
-  if (typeof window !== 'undefined' && ENV.API_URL.includes('localhost')) {
-    return window.location.origin;
-  }
   return ENV.API_URL;
 }
